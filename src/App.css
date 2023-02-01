@@ -15,8 +15,8 @@
     font-weight: 400;
 }
 .todo, .started, .completed {
-    border: 1px dotted #5C6B7F;
-    padding: 30px;
+    border: 2px dotted #5C6B7F;
+    padding: 24px;
 }
 .item {
     border: 1px solid #5C6B7F;
@@ -122,12 +122,12 @@
     opacity: 0.8;
 }
 .dragged {
-    opacity: 0.8;
+    opacity: 0.98;
 }
 .dragged-over {
-    border: 3px dotted green;
+    border: 2px dashed green;
 }
 .dragged-red {
-    border: 3px dotted red;
+    border: 2px dashed red;
 }
 

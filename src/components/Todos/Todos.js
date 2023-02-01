@@ -20,39 +20,21 @@ export default function Todos() {
     const editedTodoId = useSelector(state => state.editedTodoId);
     const dispatch = useDispatch();
     const dragRed = useRef(null);
-    const dragItem = useRef(null);
-    const dragOverItem = useRef(null);
-    const onDragStart = (evt, position) => {
+    const onDragStart = evt => {
         let element = evt.currentTarget;
         element.classList.add("dragged");
         evt.dataTransfer.setData("text/plain", evt.currentTarget.id);
         dispatch(todoDragStarted(element.id))
         evt.dataTransfer.effectAllowed = "move";
-
-        dragItem.current = position;
     }
     const onDragEnd = evt => {
         evt.currentTarget.classList.remove("dragged");
-        // if(!dragOverItem.current) {
-        //     const copyListItems = [...todos];
-        //     const dragItemContent = copyListItems[dragItem.current];
-        //
-        //     copyListItems.splice(dragItem.current, 1);
-        //     copyListItems.splice(dragOverItem.current, 0, dragItemContent);
-        //     dragItem.current = null;
-        //     dragOverItem.current = null;
-        //     setTasks(copyListItems);
-        // }
     };
-    const onDragEnter = (evt, position) => {
+    const onDragEnter = evt => {
         evt.preventDefault();
         let element = evt.currentTarget;
         element.classList.add("dragged-over");
         evt.dataTransfer.dropEffect = "move";
-
-        if(position!== 'parent') {
-            dragOverItem.current = position;
-        }
     };
     const onDragLeave = evt => {
         let currentTarget = evt.currentTarget;
@@ -74,33 +56,53 @@ export default function Todos() {
             dragRed.current = currentTarget;
         }
     };
-
     const onDrop = (evt, value, status) => {
         evt.preventDefault();
         evt.currentTarget.classList.remove("dragged-over");
+
         let data = evt.dataTransfer.getData("text/plain");
         let tasks = JSON.parse(JSON.stringify(todos));
         let updated = tasks.map(task => {
             if (task.id.toString() === data.toString()) {
                 if(task.status === 'new' && status === 'completed'){
                     evt.currentTarget.classList.remove('dragged-red');
-                } else {
+                }
+                else if(task.status === status){
+                    evt.currentTarget.classList.remove('dragged');
+                }
+                else {
                     task.status = status;
                     task.lastUpdated = getDateFormatted();
+                    task.lastUpdatedTime = new Date().getTime();
                     dispatch(todoStatusUpdated(task));
                     dragRed.current && dragRed.current.classList.remove('dragged-red');
                     dragRed.current = null;
-                    console.log("data", data, status);
                 }
             }
             return task;
         });
-        dispatch(todoDropped(updated));
-    };
 
+        if(evt.target.className !== 'todo' && evt.target.className !== 'started' && evt.target.className !== 'completed') {
+            const dragOverItem = evt.target.getAttribute('data-id');
+
+            let copyTodoItems = [...updated];
+            const dragOverItemContent = copyTodoItems.filter(item => item.id.toString() === dragOverItem)[0];
+            const dragItemContent = copyTodoItems.filter(item => item.id.toString() === todoId)[0];
+            const dragItemPosition = copyTodoItems.findIndex(item => item === dragItemContent);
+            const dragOverItemPosition = copyTodoItems.findIndex(item => item === dragOverItemContent);
+            copyTodoItems.splice(dragItemPosition, 1);
+            copyTodoItems.splice(dragOverItemPosition, 0, dragItemContent);
+
+            updated = copyTodoItems;
+        }
+
+        if(JSON.stringify(updated) !== JSON.stringify(todos)){
+            dispatch(todoDropped(updated));
+        }
+    };
     const createTodo = (e) => {
         e.preventDefault();
-        const newTodo = { id: new Date().getTime(), name, status, lastUpdated: getDateFormatted() };
+        const newTodo = { id: new Date().getTime(), name, status, lastUpdated: getDateFormatted()};
         dispatch(addTodo(newTodo));
         setName('');
         setStatus('new');
@@ -127,6 +129,7 @@ export default function Todos() {
         editedTodo.name = name;
         editedTodo.status = status;
         editedTodo.lastUpdated = getDateFormatted();
+        editedTodo.lastUpdatedTime = new Date().getTime();
         dispatch(editTodo(editedTodo));
 
         setName('');
@@ -135,10 +138,11 @@ export default function Todos() {
         toast.warn('Todo edited successfully!');
     }
 
-    let startedTodos = todos.filter(t => t.status === "started");
-    let completedTodos = todos.filter(t => t.status === "completed");
-    let newTodos = todos.filter(t => t.status === "new");
+    let startedTodos = todos.filter(t => t.status === "started")
+    let completedTodos = todos.filter(t => t.status === "completed")
+    let newTodos = todos.filter(t => t.status === "new")
 
+    // View
     return (
         <div className='container'>
             <div className='title'>
@@ -151,23 +155,24 @@ export default function Todos() {
                 {/* Todo */}
                 <div
                     className='todo'
-                    onDragEnter={e => onDragEnter(e, 'parent')}
+                    onDragEnter={e => onDragEnter(e)}
                     onDragLeave={e => onDragLeave(e)}
                     onDragOver={e => onDragOver(e)}
+                    onDragEnd={e => onDragEnd(e)}
                     onDrop={e => onDrop(e, false, 'new')}
                 >
                     {newTodos.map((todo, index) => (
                         <div
                             key={index}
                             id={todo.id}
+                            data-id={`${todo.id}`}
                             className='item'
                             draggable
-                            onDragStart={e => onDragStart(e, index)}
-                            onDragEnter={e => onDragEnter(e, index)}
+                            onDragStart={e => onDragStart(e)}
                             onDragEnd={e => onDragEnd(e)}
                         >
-                            <p className='item-name'>{todo.name}</p>
-                            <p className='item-date'>last updated <span className='item-date-hours'>{todo.lastUpdated}</span></p>
+                            <p data-id={`${todo.id}`} className='item-name'>{todo.name}</p>
+                            <p data-id={`${todo.id}`} className='item-date'>last updated <span className='item-date-hours'>{todo.lastUpdated}</span></p>
                             <div className='item-actions'>
                                 <button onClick={() => handleEditTodo(todo.id)} className='btn-action'>Edit</button>
                                 <button onClick={() => removeTodo(todo.id)} className='btn-action'>Delete</button>
@@ -178,23 +183,24 @@ export default function Todos() {
                 {/* Started */}
                 <div
                     className='started'
-                    onDragEnter={e => onDragEnter(e, 'parent')}
+                    onDragEnter={e => onDragEnter(e)}
                     onDragLeave={e => onDragLeave(e)}
                     onDragOver={e => onDragOver(e)}
+                    onDragEnd={e => onDragEnd(e)}
                     onDrop={e => onDrop(e, false, 'started')}
                 >
                     {startedTodos.map((todo, index) => (
                         <div
                             key={index}
                             id={todo.id}
+                            data-id={`${todo.id}`}
                             className='item'
                             draggable
-                            onDragStart={e => onDragStart(e, index)}
-                            onDragEnter={e => onDragEnter(e, index)}
+                            onDragStart={e => onDragStart(e)}
                             onDragEnd={e => onDragEnd(e)}
                         >
-                            <p className='item-name'>{todo.name}</p>
-                            <p className='item-date'>last updated <span className='item-date-hours'>{todo.lastUpdated}</span></p>
+                            <p data-id={`${todo.id}`} className='item-name'>{todo.name}</p>
+                            <p data-id={`${todo.id}`} className='item-date'>last updated <span className='item-date-hours'>{todo.lastUpdated}</span></p>
                             <div className='item-actions'>
                                 <button onClick={() => handleEditTodo(todo.id)} className='btn-action'>Edit</button>
                                 <button onClick={() => removeTodo(todo.id)} className='btn-action'>Delete</button>
@@ -205,23 +211,24 @@ export default function Todos() {
                 {/* Completed */}
                 <div
                     className='completed'
-                    onDragEnter={e => onDragEnter(e, 'parent')}
+                    onDragEnter={e => onDragEnter(e)}
                     onDragLeave={e => onDragLeave(e)}
                     onDragOver={e => onDragOver(e)}
+                    onDragEnd={e => onDragEnd(e)}
                     onDrop={e => onDrop(e, false, 'completed')}
                 >
                     {completedTodos.map((todo, index) => (
                         <div
                             key={index}
                             id={todo.id}
+                            data-id={`${todo.id}`}
                             className='item'
                             draggable
-                            onDragStart={e => onDragStart(e, index)}
-                            onDragEnter= {e => onDragEnter(e, index)}
+                            onDragStart={e => onDragStart(e)}
                             onDragEnd={e => onDragEnd(e)}
                         >
-                            <p className='item-name'>{todo.name}</p>
-                            <p className='item-date'>last updated <span className='item-date-hours'>{todo.lastUpdated}</span></p>
+                            <p data-id={`${todo.id}`} className='item-name'>{todo.name}</p>
+                            <p data-id={`${todo.id}`} className='item-date'>last updated <span className='item-date-hours'>{todo.lastUpdated}</span></p>
                             <div className='item-actions'>
                                 <button onClick={() => handleEditTodo(todo.id)} className='btn-action'>Edit</button>
                                 <button onClick={() => removeTodo(todo.id)} className='btn-action'>Delete</button>

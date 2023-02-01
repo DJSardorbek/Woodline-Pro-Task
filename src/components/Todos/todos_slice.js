@@ -16,7 +16,7 @@ const initialState = {
         { id: 2, name: 'Go to the gym', status: 'new', lastUpdated: getDateFormatted() },
         { id: 3, name: 'Call Ollie', status: 'new', lastUpdated: getDateFormatted() },
         { id: 4, name: 'Fix bike tyre', status: 'new', lastUpdated: getDateFormatted() },
-        { id: 5, name: 'Finish blog post', status: 'new', lastUpdated: getDateFormatted() } ],
+        { id: 5, name: 'Finish blog post', status: 'new', lastUpdated: getDateFormatted() }],
     todoEdited: false,
     editedTodoId: 0,
     todoId: 0,
@@ -58,5 +58,5 @@ const todosSlice = createSlice({
     }
 })
 
-export const {todoEditedChanged, todoStatusUpdated, todoDragStarted, todoDropped, addTodo, deleteTodo, editTodo} = todosSlice.actions;
+export const {editTodo,todoEditedChanged,deleteTodo,addTodo,todoStatusUpdated,todoDragStarted,todoDropped} = todosSlice.actions;
 export default todosSlice.reducer;
